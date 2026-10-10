@@ -1,0 +1,12 @@
+# Local credentials and generated Immich data
+.env
+.env.*
+!.env.example
+library/
+postgres/
+.DS_Store
+# Frontend build outputs
+frontend/node_modules/
+frontend/dist/
+frontend/test-results/
+frontend/playwright-report/
