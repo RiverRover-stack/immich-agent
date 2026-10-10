@@ -1,0 +1,40 @@
+# Immich release files + its data (downloaded by scripts/fetch_immich.sh; never commit)
+immich/
+
+# Secrets
+.env
+
+# ShutterStorm runtime state (undo journal, STOP file)
+.shutterstorm/
+
+# Raw run data; keep only the canonical run
+runs/*
+!runs/canonical/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+
+# Docs: track the markdown (deliverables), not the heavy source material
+docs/brief/
+docs/*.pdf
+
+# Local sample photos for seeding (never commit personal images)
+data/
+
+# any .env variant may hold secrets; only the template is tracked
+.env.*
+!.env.example

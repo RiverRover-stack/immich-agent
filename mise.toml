@@ -1,0 +1,7 @@
+# Optional: if you use mise (https://mise.jdx.dev), `cd` into the repo and it
+# picks Python 3.12 and auto-creates/activates .venv. Without mise, see README.
+[tools]
+python = "3.12"
+
+[env]
+_.python.venv = { path = ".venv", create = true }

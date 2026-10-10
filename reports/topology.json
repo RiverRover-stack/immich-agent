@@ -1,0 +1,289 @@
+{
+  "app": "immich",
+  "compose_file": "/home/parit/Projects/hackathon/immich-agent/immich/docker-compose.yml",
+  "nodes": [
+    {
+      "id": "immich_server",
+      "service": "immich-server",
+      "image": "ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-release}",
+      "kind": "stateful",
+      "replicas": 1,
+      "restart_policy": "always",
+      "has_healthcheck": true,
+      "limits": {
+        "memory": null,
+        "cpus": null
+      },
+      "ports": [
+        "2283:2283"
+      ],
+      "volumes": [
+        "${UPLOAD_LOCATION}:/data",
+        "/etc/localtime:/etc/localtime:ro"
+      ],
+      "depends_on": [
+        "immich_redis",
+        "immich_postgres"
+      ],
+      "runtime": {
+        "status": "running",
+        "health": "healthy",
+        "restart_count": 1,
+        "restart_policy_runtime": "always",
+        "memory_limit_bytes": 0,
+        "cpu_quota": 0,
+        "image_id": "sha256:db996e352359"
+      }
+    },
+    {
+      "id": "immich_machine_learning",
+      "service": "immich-machine-learning",
+      "image": "ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}",
+      "kind": "stateless",
+      "replicas": 1,
+      "restart_policy": "always",
+      "has_healthcheck": true,
+      "limits": {
+        "memory": null,
+        "cpus": null
+      },
+      "ports": [],
+      "volumes": [
+        "model-cache:/cache"
+      ],
+      "depends_on": [],
+      "runtime": {
+        "status": "running",
+        "health": "healthy",
+        "restart_count": 0,
+        "restart_policy_runtime": "always",
+        "memory_limit_bytes": 0,
+        "cpu_quota": 0,
+        "image_id": "sha256:513c831cfb01"
+      }
+    },
+    {
+      "id": "immich_redis",
+      "service": "redis",
+      "image": "docker.io/valkey/valkey:9",
+      "kind": "stateful",
+      "replicas": 1,
+      "restart_policy": "always",
+      "has_healthcheck": true,
+      "limits": {
+        "memory": null,
+        "cpus": null
+      },
+      "ports": [],
+      "volumes": [],
+      "depends_on": [],
+      "runtime": {
+        "status": "running",
+        "health": "healthy",
+        "restart_count": 0,
+        "restart_policy_runtime": "always",
+        "memory_limit_bytes": 0,
+        "cpu_quota": 0,
+        "image_id": "sha256:c123e3715db6"
+      }
+    },
+    {
+      "id": "immich_postgres",
+      "service": "database",
+      "image": "ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0",
+      "kind": "stateful",
+      "replicas": 1,
+      "restart_policy": "always",
+      "has_healthcheck": true,
+      "limits": {
+        "memory": null,
+        "cpus": null
+      },
+      "ports": [],
+      "volumes": [
+        "${DB_DATA_LOCATION}:/var/lib/postgresql/data"
+      ],
+      "depends_on": [],
+      "runtime": {
+        "status": "running",
+        "health": "healthy",
+        "restart_count": 0,
+        "restart_policy_runtime": "always",
+        "memory_limit_bytes": 0,
+        "cpu_quota": 0,
+        "image_id": "sha256:bcf63357191b"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "immich_server",
+      "to": "immich_redis",
+      "kind": "declared",
+      "protocol": null,
+      "confidence": "high",
+      "evidence": [
+        "compose: immich-server.depends_on lists it"
+      ]
+    },
+    {
+      "from": "immich_server",
+      "to": "immich_postgres",
+      "kind": "declared",
+      "protocol": null,
+      "confidence": "high",
+      "evidence": [
+        "compose: immich-server.depends_on lists it"
+      ]
+    },
+    {
+      "from": "immich_server",
+      "to": "immich_machine_learning",
+      "kind": "implicit",
+      "protocol": "http",
+      "port": 3003,
+      "confidence": "high",
+      "evidence": [
+        "Not in immich-server depends_on. Smart search and the SmartSearch/FaceDetection/OCR job handlers call it (server log: \"Machine learning request ... failed for all URLs\"). Observed 10 Oct 2026 (O-1, O-2)."
+      ]
+    }
+  ],
+  "journeys": [
+    {
+      "name": "ping",
+      "needs": [
+        "immich_server"
+      ],
+      "confidence": "high",
+      "description": "Liveness check, GET /api/server/ping",
+      "evidence": "API process only; no downstream calls (verified: answers while ML is stopped)"
+    },
+    {
+      "name": "auth_read",
+      "needs": [
+        "immich_server",
+        "immich_postgres"
+      ],
+      "confidence": "high",
+      "description": "Authenticated read, GET /api/users/me",
+      "evidence": "Reads the user row from Postgres"
+    },
+    {
+      "name": "browse",
+      "needs": [
+        "immich_server",
+        "immich_postgres"
+      ],
+      "confidence": "high",
+      "description": "Timeline listing + thumbnail fetch",
+      "evidence": "Verified 10 Oct 2026: stays 100% healthy while ML is stopped (observations O-1)"
+    },
+    {
+      "name": "search",
+      "needs": [
+        "immich_server",
+        "immich_machine_learning",
+        "immich_postgres"
+      ],
+      "confidence": "high",
+      "description": "Smart (content) search, POST /api/search/smart",
+      "evidence": "Verified 10 Oct 2026: a new query returns HTTP 500 while ML is stopped (observations O-1)"
+    },
+    {
+      "name": "upload",
+      "needs": [
+        "immich_server",
+        "immich_postgres"
+      ],
+      "confidence": "medium",
+      "description": "Upload a photo, POST /api/assets (the request being accepted, HTTP 201)",
+      "evidence": "Accepting an upload writes the asset row. Whether enqueueing the follow-up jobs also needs redis for acceptance is NOT verified; experiment E-04 (stop redis) will settle it."
+    },
+    {
+      "name": "upload_processing",
+      "needs": [
+        "immich_server",
+        "immich_postgres",
+        "immich_redis",
+        "immich_machine_learning"
+      ],
+      "confidence": "high",
+      "description": "The accepted upload is thumbnailed and search-indexed by background jobs",
+      "evidence": "Verified 10 Oct 2026 (observations O-2): with ML stopped, uploads were accepted and thumbnailed but never search-indexed, and the queue counters showed nothing wrong."
+    }
+  ],
+  "audit": [
+    {
+      "severity": "high",
+      "services": [
+        "immich_machine_learning",
+        "immich_server"
+      ],
+      "title": "Hidden dependency: immich_server needs immich_machine_learning but does not declare it",
+      "evidence": [
+        "compose depends_on does not list it, so start order and health are not coupled",
+        "Not in immich-server depends_on. Smart search and the SmartSearch/FaceDetection/OCR job handlers call it (server log: \"Machine learning request ... failed for all URLs\"). Observed 10 Oct 2026 (O-1, O-2)."
+      ],
+      "source": "static configuration",
+      "id": "A-01"
+    },
+    {
+      "severity": "high",
+      "services": [
+        "immich_postgres",
+        "immich_redis",
+        "immich_server"
+      ],
+      "title": "Single instance of stateful services: any failure is an outage with no failover",
+      "evidence": [
+        "compose defines one container each and no replicas"
+      ],
+      "source": "static configuration",
+      "id": "A-02"
+    },
+    {
+      "severity": "medium",
+      "services": [
+        "immich_machine_learning",
+        "immich_postgres",
+        "immich_redis",
+        "immich_server"
+      ],
+      "title": "No CPU or memory limits: one container can starve the others",
+      "evidence": [
+        "compose sets no mem_limit / cpus / deploy.resources.limits",
+        "runtime: unlimited"
+      ],
+      "source": "static configuration",
+      "id": "A-03"
+    },
+    {
+      "severity": "medium",
+      "services": [
+        "immich_machine_learning",
+        "immich_postgres",
+        "immich_redis",
+        "immich_server"
+      ],
+      "title": "Restart policy reacts to exit only: a hung but running process is never restarted",
+      "evidence": [
+        "restart: always together with a healthcheck",
+        "Docker does not restart a container for being 'unhealthy'"
+      ],
+      "source": "static configuration",
+      "id": "A-04"
+    },
+    {
+      "severity": "medium",
+      "services": [
+        "immich_machine_learning"
+      ],
+      "title": "Single instance of stateless services: no redundancy",
+      "evidence": [
+        "compose defines one container each and no replicas"
+      ],
+      "source": "static configuration",
+      "id": "A-05"
+    }
+  ]
+}

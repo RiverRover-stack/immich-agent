@@ -1,0 +1,59 @@
+# Hand-maintained map of user journeys -> the components each one needs.
+# This is the "semi-automatic, manual corrections allowed" half of application mapping:
+# the compose file says what runs; this file says what users lose when something stops.
+#
+# `needs` must match the probes in shutterstorm/workload/probes.py (checked by tests).
+# `evidence` points at how we know. Prefer an observation over an assumption.
+
+journeys:
+  ping:
+    description: Liveness check, GET /api/server/ping
+    needs: [immich_server]
+    confidence: high
+    evidence: "API process only; no downstream calls (verified: answers while ML is stopped)"
+
+  auth_read:
+    description: Authenticated read, GET /api/users/me
+    needs: [immich_server, immich_postgres]
+    confidence: high
+    evidence: "Reads the user row from Postgres"
+
+  browse:
+    description: Timeline listing + thumbnail fetch
+    needs: [immich_server, immich_postgres]
+    confidence: high
+    evidence: "Verified 10 Oct 2026: stays 100% healthy while ML is stopped (observations O-1)"
+
+  search:
+    description: Smart (content) search, POST /api/search/smart
+    needs: [immich_server, immich_machine_learning, immich_postgres]
+    confidence: high
+    evidence: "Verified 10 Oct 2026: a new query returns HTTP 500 while ML is stopped (observations O-1)"
+
+  upload:
+    description: Upload a photo, POST /api/assets (the request being accepted, HTTP 201)
+    needs: [immich_server, immich_postgres]
+    confidence: medium
+    evidence: >
+      Accepting an upload writes the asset row. Whether enqueueing the follow-up jobs also needs
+      redis for acceptance is NOT verified; experiment E-04 (stop redis) will settle it.
+
+  upload_processing:
+    description: The accepted upload is thumbnailed and search-indexed by background jobs
+    needs: [immich_server, immich_postgres, immich_redis, immich_machine_learning]
+    confidence: high
+    evidence: >
+      Verified 10 Oct 2026 (observations O-2): with ML stopped, uploads were accepted and
+      thumbnailed but never search-indexed, and the queue counters showed nothing wrong.
+
+# Dependencies that docker-compose does NOT declare. Each one is a candidate hidden weak spot.
+extra_edges:
+  - from: immich_server
+    to: immich_machine_learning
+    protocol: http
+    port: 3003
+    confidence: high
+    evidence: >
+      Not in immich-server depends_on. Smart search and the SmartSearch/FaceDetection/OCR job
+      handlers call it (server log: "Machine learning request ... failed for all URLs").
+      Observed 10 Oct 2026 (O-1, O-2).

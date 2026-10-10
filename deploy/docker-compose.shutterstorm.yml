@@ -1,0 +1,15 @@
+# ShutterStorm override, layered on top of Immich's unmodified release compose file.
+# - Publishes the API on localhost only (never expose the sandbox to the venue network).
+# - Labels the four Immich services so the chaos allowlist can find them.
+# Needs Docker Compose >= 2.24 for !override.
+services:
+  immich-server:
+    labels: { shutterstorm.target: "true" }
+    ports: !override
+      - "127.0.0.1:2283:2283"
+  immich-machine-learning:
+    labels: { shutterstorm.target: "true" }
+  redis:
+    labels: { shutterstorm.target: "true" }
+  database:
+    labels: { shutterstorm.target: "true" }

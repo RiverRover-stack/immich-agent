@@ -1,0 +1,24 @@
+# Experiment catalog: for each target, which faults are worth running and in what order.
+# Mildest / most informative first. The planner takes the first not-yet-run fault per target.
+# Mirrors CLAUDE.md section 5 (E-01 ... E-06). Edit here, not in code.
+
+defaults:
+  faults: [stop, pause, cpu_throttle]
+
+targets:
+  immich_machine_learning:   # E-01: hidden dependency; does processing silently stall?
+    faults: [stop, pause, cpu_throttle]
+  immich_postgres:           # E-03: a hang may be worse than a crash; nothing restarts it
+    faults: [pause, stop, cpu_throttle]
+  immich_redis:              # E-04: uploads accepted but never processed?
+    faults: [stop, pause, cpu_throttle]
+  immich_server:             # E-05: does background job work starve the API?
+    faults: [cpu_throttle, stop, pause]
+
+params:
+  cpu_throttle: {cpus: 0.5}
+
+ttl_s:
+  stop: 30
+  pause: 20
+  cpu_throttle: 30
