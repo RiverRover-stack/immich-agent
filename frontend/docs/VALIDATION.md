@@ -1,13 +1,14 @@
-# Validation
+# Frontend validation — 10 October 2026
 
-Validated on 2026-10-10 with Node 22.13.1, npm 10.9.2, and local headless Google Chrome.
+Validated on Windows with Node.js 22.13.0 and headless Google Chrome.
 
-- `npm run build`: passed TypeScript and Vite production build. Graph and chart bundles are split; no oversized-chunk warning.
-- `npm test`: 14 tests passed, covering baseline/readiness blocking, retry limits, scope rejection despite passing tests, verified/unresolved cleanup, cancellation acknowledgement, cleanup failure/retry, injection versus confirmation, inconclusive outcomes, approved parameters, live network failure, backend rejection and discovery isolation.
-- `npm run test:browser`: all nine demo scenarios passed through the real UI. Verified changed-file display, failure topology snapshot, history/report opening, JSON download, and desktop/mobile screenshots. No browser runtime errors or horizontal mobile overflow at 390px.
-- npm installation audit after patched Vitest and explicit react-is dependency: zero vulnerabilities. Final `npm audit --omit=dev`: zero vulnerabilities.
-- Git ignore verification: `.env`, `library/`, `postgres/`, `frontend/node_modules/`, and `frontend/dist/` are ignored. Screenshots and TypeScript build metadata are also ignored.
+- `npm test`: **20 tests passed**. Covers missing drill/baseline gates, predictions before injection, acknowledgement versus impact, honest fallback provenance, score calculation, protected-journey abort, stop idempotence, journal retention, cleanup retry, TTL and CPU bounds, allowlist, active-run exclusion, API rejection/disconnection, demo-field exclusion, incompatible bootstrap, malformed history and premature completion.
+- `npm run build`: **passed** TypeScript and Vite production compilation (2,289 modules). Graph and chart bundles remain split; no oversized-chunk warning.
+- `npm run test:browser`: **passed all eight scenarios**. Verified prediction scorecard, queue chart, upload overlay including ML, failure snapshot, report dialog and JSON download, CPU input limits, Escape dismissal, desktop rendering and 390px mobile rendering. Six graph nodes were asserted to be inside the resized canvas. No browser runtime errors or horizontal mobile overflow.
+- Desktop and mobile screenshots were visually inspected. The mobile graph nodes are visible after resize. Screenshots remain ignored in `frontend/test-results/desktop.png` and `mobile.png`.
+- `npm ci` completed and its audit reported **zero vulnerabilities** across 163 audited packages.
+- Dependency installation and Node/Vite tests required execution outside the Windows sandbox because sandbox file resolution returned EPERM. They completed with the required permissions.
 
-Browser screenshots are generated at `test-results/desktop.png` and `test-results/mobile.png` and are intentionally not committed. The browser script expects the development server on 127.0.0.1:5173 and an installed Google Chrome.
+Live engine operations were not end-to-end tested: this checkout contains no ShutterStorm Python engine or HTTP bridge. Unit tests exercise live-adapter contract rejection and disconnect behavior. Real Docker faults, safety drill, guard thresholds, server authorization, planner APIs, raw artifact mapping and undo correctness must be verified in the backend sandbox.
 
-Live operations were not end-to-end tested because this repository has no orchestration backend. Adapter rejection and disconnect behavior is covered by tests. Backend readiness, authorization, guards, checkpoints, fault execution, repair execution and restoration must be implemented and verified before enabling real experiments.
+The demo is an accelerated fixture, not a benchmark or evidence of Immich behavior. No container configuration or data was modified during frontend validation.

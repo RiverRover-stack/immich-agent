@@ -1,6 +1,6 @@
 # ShutterStorm · Immich resilience lab
 
-The dashboard lives in [`frontend/`](frontend/README.md). Existing Immich deployment files remain separate.
+The [frontend dashboard](frontend/README.md) follows the ShutterStorm experiment lifecycle: discovery, baseline, planning, validation, controlled faults, observation, analysis, reporting and verified restoration.
 
 ```sh
 cd frontend
@@ -8,8 +8,8 @@ npm ci
 npm run dev
 ```
 
-Open http://127.0.0.1:5173. The default **Demo Mode** is a complete local simulation; it does not modify the Immich deployment. Use Start Run to choose a scenario, inspect evidence and repairs, and verify cleanup. History provides downloadable JSON, readable print/PDF reports and patch exports.
+Open http://127.0.0.1:5173. Demo Mode uses explicitly simulated observations and never modifies Immich. The dashboard provides dependency maps, source-linked findings, prediction scorecards, queue/upload telemetry, rollback status and JSON/print reports.
 
-See [frontend setup and walkthrough](frontend/README.md), [proposed backend API](frontend/docs/API.md), and [third-party software](frontend/docs/THIRD_PARTY.md).
+The Python orchestration engine is not included in this checkout. Live integration requires the [proposed API bridge](frontend/docs/API.md), which maps the backend's flat-file artifacts to dashboard data. See [HANDOFF.md](HANDOFF.md) for current validation and remaining backend work.
 
-Local `.env` credentials, `library/`, `postgres/`, dependency folders and build outputs are ignored by Git. Commit the frontend source, lockfile and documentation along with `.gitignore`; do not add local data or credentials with `git add -f`.
+Local credentials, Immich data, dependencies and build output are ignored by Git. Do not force-add them. Existing deployment files are separate from the dashboard.
